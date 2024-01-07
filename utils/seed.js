@@ -1,6 +1,6 @@
-const connection = require('./config/Connection'); // Adjust the path as needed
-const { User, Thought, reactionSchema } = require('./models'); 
-const { getRandomUsername, getRandomThoughts, getRandomReactions } = require('./data'); 
+const connection = require('../config/connection'); 
+const { User, Thought } = require('../models');
+const { getRandomUsername, getRandomThoughts, getRandomReactions } = require('./data');
 
 connection.on('error', (err) => err);
 
@@ -41,8 +41,14 @@ connection.once('open', async () => {
   // Add users to the collection and await the results
   const userData = await User.insertMany(users);
 
+  // Declare Thought and insert thoughts into the collection
+  const thoughts = getRandomThoughts(10); 
+  const thoughtData = await Thought.insertMany(thoughts);
+
   // Log out the seed data to indicate what should appear in the database
   console.table(users);
   console.info('Seeding complete! 🌱');
+  console.table(thoughts);
+  console.info('Thought seeding complete! 🌱');
   process.exit(0);
 });
