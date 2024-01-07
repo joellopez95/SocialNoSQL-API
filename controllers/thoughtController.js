@@ -93,8 +93,8 @@ const { Thought, User } = require('../models');
 module.exports = {
   async getAllThoughts(req, res) {
     try {
-      const videos = await Video.find();
-      res.json(videos);
+      const thought = await Thought.find();
+      res.json(thought);
     } catch (err) {
       res.status(500).json(err);
     }
