@@ -1,4 +1,4 @@
-const connection = require('../config/connection'); 
+const connection = require('../config/connection');
 const { User, Thought } = require('../models');
 const { getRandomUsername, getRandomThoughts, getRandomReactions } = require('./data');
 
@@ -30,25 +30,33 @@ connection.once('open', async () => {
     const username = getRandomUsername();
     const email = `${username.toLowerCase()}@example.com`;
 
+    const formattedThoughts = thoughts.map(thought => ({
+      thoughtText: thought.thoughtText,
+      username: thought.username,
+    }));
+
     users.push({
       username,
       email,
-      thoughts,
+      thoughts: formattedThoughts, 
       reactions,
     });
   }
 
-  // Add users to the collection and await the results
   const userData = await User.insertMany(users);
 
-  // Declare Thought and insert thoughts into the collection
-  const thoughts = getRandomThoughts(10); 
-  const thoughtData = await Thought.insertMany(thoughts);
+  // Corrected insertion of multiple thoughts
+  const thoughtsData = getRandomThoughts(10).map((thought) => ({
+    thoughtText: thought.thoughtText,
+    username: thought.username,
+  }));
+
+  const thoughtData = await Thought.insertMany(thoughtsData);
 
   // Log out the seed data to indicate what should appear in the database
-  console.table(users);
+  console.table(userData);
   console.info('Seeding complete! 🌱');
-  console.table(thoughts);
+  console.table(thoughtData);
   console.info('Thought seeding complete! 🌱');
   process.exit(0);
 });

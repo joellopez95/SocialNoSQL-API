@@ -11,7 +11,7 @@ const thoughtController = {
     }
   },
   // Get a single thought
-  async getSingleCourse(req, res) {
+  async getSingleThought(req, res) {
     try {
       const thought = await Thought.findOne({ _id: req.params.thoughtId })
         .populate('reactions');
