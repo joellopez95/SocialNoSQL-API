@@ -2,100 +2,109 @@ const { User, Thought } = require('../models');
 
 const userController = {
   // Get all users
-  getAllUsers: async (req, res) => {
+  async getAllUsers(req, res) {
     try {
       const users = await User.find();
-      res.json(users);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
+
+      const userObj = {
+        users,
+        userCount: await headCount(),
+      };
+
+      res.json(userObj);
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json(err);
     }
   },
-
-  // Get a single user by its _id and populate thoughts and friends data
-  getUserById: async (req, res) => {
-    const { userId } = req.params;
-
+  // Get a single user
+  async getSingleUser(req, res) {
     try {
-      const user = await User.findById(userId)
-        .populate('thoughts')
-        .populate('friends', '_id username');
+      const user = await User.findOne({ _id: req.params.userId })
+        .select('-__v');
 
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ message: 'No user with that ID' });
       }
 
-      res.json(user);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.json({
+        user,
+        thoughtCount: await thoughtCount(req.params.userId),
+        reactionCount: await reactionCount(req.params.userId),
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json(err);
     }
   },
-
   // Create a new user
-  createUser: async (req, res) => {
-    const { username, email } = req.body;
-
+  async createUser(req, res) {
     try {
-      const existingUser = await User.findOne({ username });
-      if (existingUser) {
-        return res.status(400).json({ message: 'Username already exists' });
-      }
-
-      const user = await User.create({ username, email });
-      res.status(201).json(user);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
+      const user = await User.create(req.body);
+      res.json(user);
+    } catch (err) {
+      res.status(500).json(err);
     }
   },
-
-  // Update a user by its _id
-  updateUser: async (req, res) => {
-    const { userId } = req.params;
-    const { username, email } = req.body;
-
+  // Delete a user and remove their thoughts
+  async deleteUser(req, res) {
     try {
-      const user = await User.findByIdAndUpdate(
-        userId,
-        { username, email },
-        { new: true }
+      const user = await User.findOneAndRemove({ _id: req.params.userId });
+
+      if (!user) {
+        return res.status(404).json({ message: 'No such user exists' });
+      }
+
+      await Thought.deleteMany({ username: user.username });
+
+      res.json({ message: 'User and thoughts successfully deleted' });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json(err);
+    }
+  },
+  // Update a user
+  async updateUser(req, res) {
+    try {
+      const user = await User.findOneAndUpdate(
+        { _id: req.params.userId },
+        { $set: req.body },
+        { runValidators: true, new: true }
       );
 
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        res.status(404).json({ message: 'No user with this ID' });
       }
 
       res.json(user);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    } catch (err) {
+      res.status(500).json(err);
     }
   },
+};
 
-  // Delete a user by its _id
-  deleteUser: async (req, res) => {
-    const { userId } = req.params;
+// Function to get the number of users overall
+const headCount = async () => {
+  const numberOfUsers = await User.countDocuments();
+  return numberOfUsers;
+};
 
-    try {
-      const user = await User.findByIdAndDelete(userId);
+// Function to get the number of thoughts for a user
+const thoughtCount = async (userId) => {
+  const numberOfThoughts = await Thought.countDocuments({ username: userId });
+  return numberOfThoughts;
+};
 
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
+// Function to get the number of reactions for a user
+const reactionCount = async (userId) => {
+  const userThoughts = await Thought.find({ username: userId });
+  let numberOfReactions = 0;
 
-      // Remove user references from thoughts
-      await Thought.updateMany(
-        { username: user.username },
-        { $pull: { reactions: { username: user.username } } }
-      );
+  userThoughts.forEach((thought) => {
+    numberOfReactions += thought.reactions.length;
+  });
 
-      res.json({ message: 'User deleted successfully' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  },
+  return numberOfReactions;
 };
 
 module.exports = userController;
