@@ -24,21 +24,21 @@ module.exports = {
       res.status(500).json(err);
     }
   },
-  // create a new video
+  // create a new Thought
   async createThought(req, res) {
     try {
       const thought = await Thought.create(req.body);
       const user = await User.findOneAndUpdate(
         { _id: req.body.userId },
-        { $addToSet: { thought: thought._id } },
+        { $push: { thoughts: thought._id } },
         { new: true }
       );
 
-      if (!user) {
-        return res.status(404).json({
-          message: 'Thought created, but found no user with that ID',
-        });
-      }
+      // if (!user) {
+      //   return res.status(404).json({
+      //     message: 'Thought created, but found no user with that ID',
+      //   });
+      // }
 
       res.json('Created the Thought 🎉');
     } catch (err) {
@@ -58,7 +58,7 @@ module.exports = {
         return res.status(404).json({ message: 'No thought with this id!' });
       }
 
-      res.json(Thought);
+      res.json(thought);
     } catch (err) {
       console.log(err);
       res.status(500).json(err);
@@ -66,22 +66,10 @@ module.exports = {
   },
   async deleteThought(req, res) {
     try {
-      const thought = await Thought.findOneAndRemove({ _id: req.params.thoughtId });
+      const deletedThought = await Thought.findOneAndDelete({ _id: req.params.thoughtId });
 
-      if (!thought) {
+      if (!deletedThought) {
         return res.status(404).json({ message: 'No thought with this id!' });
-      }
-
-      const user = await User.findOneAndUpdate(
-        { thought: req.params.thoughtId },
-        { $pull: { thought: req.params.thoughtId } },
-        { new: true }
-      );
-
-      if (!user) {
-        return res
-          .status(404)
-          .json({ message: 'thought created but no user with this id!' });
       }
 
       res.json({ message: 'Thought successfully deleted!' });
@@ -89,7 +77,7 @@ module.exports = {
       res.status(500).json(err);
     }
   },
-// Add a video response
+// Add a Thought reaction
 async addThoughtReaction(req, res) {
   try {
     const thought = await Thought.findOneAndUpdate(
