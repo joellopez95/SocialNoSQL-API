@@ -72,9 +72,9 @@ async updateUser(req, res) {
         { runValidators: true, new: true }
       );
   
-      if (!user) {
-        return res.status(404).json({ message: 'No User found with this ID!' });
-      }
+      // if (!user) {
+      //   return res.status(404).json({ message: 'No User found with this ID!' });
+      // }
   
       res.json(user);
     } catch (err) {
